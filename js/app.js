@@ -4,7 +4,7 @@ class TakarazukaKanjiApp {
     constructor() {
         this.currentQuestionIndex = 0;
         this.correctAnswers = 0;
-        this.totalQuestions = 50; // 全問題数
+        this.totalQuestions = 60; // 全問題数（拡張されたデータベースに対応）
         this.questions = [];
         this.currentQuestion = null;
         this.isAnswering = false;
@@ -282,14 +282,11 @@ class TakarazukaKanjiApp {
         loadingElement.style.display = 'flex';
         
         try {
-            // まずWikipediaから画像を検索
-            const wikiPhotoUrl = await this.searchWikipediaImage(performer.name);
-            let photoUrl;
+            // データベースに写真URLがある場合はそれを使用
+            let photoUrl = performer.photoUrl;
             
-            if (wikiPhotoUrl) {
-                photoUrl = wikiPhotoUrl;
-            } else {
-                // Wikipediaで見つからない場合はプレースホルダー
+            // URLが無効な場合は代替画像を生成
+            if (!photoUrl || photoUrl.includes('placeholder') || photoUrl.includes('i.imgur.com/placeholder')) {
                 photoUrl = DEFAULT_PHOTO_URLS[performer.name] || 
                           this.generatePerformerImage(performer);
             }
@@ -304,15 +301,16 @@ class TakarazukaKanjiApp {
             };
             
             photoElement.onerror = () => {
-                // エラー時は組の色に合わせたプレースホルダーを表示
-                photoElement.src = this.generatePerformerImage(performer);
+                // エラー時は組の色とeraに合わせた美しいアバターを表示
+                const fallbackUrl = this.generatePerformerAvatar(performer);
+                photoElement.src = fallbackUrl;
                 loadingElement.style.display = 'none';
                 photoElement.style.display = 'block';
             };
             
         } catch (error) {
             console.error('写真の読み込みに失敗:', error);
-            photoElement.src = this.generatePerformerImage(performer);
+            photoElement.src = this.generatePerformerAvatar(performer);
             loadingElement.style.display = 'none';
             photoElement.style.display = 'block';
         }
@@ -345,6 +343,26 @@ class TakarazukaKanjiApp {
         const bgColor = colorMap[performer.troupeColor] || '95a5a6';
         
         return `https://via.placeholder.com/150x150/${bgColor}/${textColor}?text=${encodeURIComponent(performer.name)}`;
+    }
+
+    // より美しいアバター画像を生成（現役/歴代の区別も含む）
+    generatePerformerAvatar(performer) {
+        const seed = performer.name.replace(/\s/g, '-').toLowerCase();
+        const bgColorMap = {
+            'tsuki': '2c3e50',  // 月組: ダークブルー
+            'hana': 'e74c3c',   // 花組: レッド  
+            'yuki': 'bdc3c7',   // 雪組: ライトグレー
+            'hoshi': '1abc9c',  // 星組: ティール
+            'sora': '3498db'    // 宙組: ブルー
+        };
+        
+        const bgColor = bgColorMap[performer.troupeColor] || '95a5a6';
+        
+        // 現役と歴代で異なるスタイルを適用
+        const hairStyle = performer.era === '歴代' ? 'longHair' : 'shortHair';
+        const accessory = performer.era === '歴代' ? '&accessories[]=sunglasses' : '';
+        
+        return `https://avatars.dicebear.com/api/avataaars/${seed}.svg?background=%23${bgColor}&top[]=${hairStyle}${accessory}&clothesColor=blue01`;
     }
 
     selectAnswer(answerIndex) {
@@ -411,17 +429,23 @@ class TakarazukaKanjiApp {
         const profile = PERFORMER_PROFILES[performer.name];
         
         if (profile) {
+            const eraLabel = performer.era === '歴代' ? '(歴代スター)' : '(現役)';
+            const eraIcon = performer.era === '歴代' ? '👑' : '⭐';
+            
             profileContent.innerHTML = `
-                <p><strong>芸名:</strong> ${performer.name} (${performer.reading})</p>
-                <p><strong>所属:</strong> 宝塚歌劇団 ${performer.troupe}</p>
-                <p><strong>入団:</strong> ${profile.joinYear}</p>
-                <p><strong>出身:</strong> ${profile.hometown}</p>
-                <p><strong>プロフィール:</strong> ${profile.description}</p>
+                <p><strong>${eraIcon} 芸名:</strong> ${performer.name} (${performer.reading}) ${eraLabel}</p>
+                <p><strong>🎭 所属:</strong> 宝塚歌劇団 ${performer.troupe}</p>
+                <p><strong>📅 入団:</strong> ${profile.joinYear}</p>
+                <p><strong>🏠 出身:</strong> ${profile.hometown}</p>
+                <p><strong>✨ プロフィール:</strong> ${profile.description}</p>
             `;
         } else {
+            const eraLabel = performer.era === '歴代' ? '(歴代スター)' : '(現役)';
+            const eraIcon = performer.era === '歴代' ? '👑' : '⭐';
+            
             profileContent.innerHTML = `
-                <p><strong>芸名:</strong> ${performer.name} (${performer.reading})</p>
-                <p><strong>所属:</strong> 宝塚歌劇団 ${performer.troupe}</p>
+                <p><strong>${eraIcon} 芸名:</strong> ${performer.name} (${performer.reading}) ${eraLabel}</p>
+                <p><strong>🎭 所属:</strong> 宝塚歌劇団 ${performer.troupe}</p>
                 <p>美しく輝く宝塚のスターとして、多くの観客に愛され続けています。</p>
             `;
         }
