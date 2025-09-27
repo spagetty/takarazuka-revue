@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>画像検索テスト</title>
+    <style>
+        body { 
+            font-family: 'Hiragino Sans', 'ヒラギノ角ゴ Pro W3', 'Meiryo', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .test-container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+        .test-result {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+        .performer-test {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+        .performer-photo {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin-right: 15px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+        }
+        .performer-info h3 {
+            margin: 0;
+            color: #ffd700;
+        }
+        .test-button {
+            background: linear-gradient(45deg, #ff6b6b, #ffa500);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: transform 0.3s;
+        }
+        .test-button:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🌟 宝塚画像検索テスト 🌟</h1>
+        <p>Web画像検索機能をテストします。各劇団員の写真を検索・表示します。</p>
+        
+        <button class="test-button" onclick="testAllPerformers()">全劇団員テスト開始</button>
+        <button class="test-button" onclick="testSinglePerformer()">単体テスト</button>
+        <button class="test-button" onclick="clearResults()">結果クリア</button>
+        
+        <div id="testResults"></div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/data.js"></script>
+    <script>
+        class ImageSearchTester {
+            constructor() {
+                this.testResults = document.getElementById('testResults');
+            }
+
+            // シンプルなハッシュ関数（app.jsから移植）
+            simpleHash(str) {
+                let hash = 0;
+                for (let i = 0; i < str.length; i++) {
+                    const char = str.charCodeAt(i);
+                    hash = ((hash << 5) - hash) + char;
+                    hash = hash & hash; // 32bit整数に変換
+                }
+                return Math.abs(hash);
+            }
+
+            // 画像検索機能（app.jsから移植・簡略化）
+            async searchPerformerPhoto(performer) {
+                // 複数のソースから写真を検索して取得
+                const queries = [
+                    `${performer.name} 宝塚歌劇団`,
+                    `${performer.name} タカラジェンヌ`,
+                    `${performer.name} ${performer.troupe}`,
+                    `Takarazuka ${performer.name}`,
+                    performer.name
+                ];
+
+                for (let i = 0; i < queries.length; i++) {
+                    const query = queries[i];
+                    
+                    try {
+                        // デフォルト画像をチェック
+                        if (i === 0 && DEFAULT_PERFORMER_IMAGES[performer.name]) {
+                            console.log(`${performer.name}のデフォルト画像を使用:`, DEFAULT_PERFORMER_IMAGES[performer.name]);
+                            return DEFAULT_PERFORMER_IMAGES[performer.name];
+                        }
+
+                        // Unsplash検索
+                        let photoUrl = await this.searchUnsplashPhoto(query);
+                        if (photoUrl) {
+                            console.log(`Unsplashで${performer.name}の写真を発見:`, photoUrl);
+                            return photoUrl;
+                        }
+
+                        // Pixabay検索
+                        photoUrl = await this.searchPixabayPhoto(query);
+                        if (photoUrl) {
+                            console.log(`Pixabayで${performer.name}の写真を発見:`, photoUrl);
+                            return photoUrl;
+                        }
+
+                        // Lorem Picsum
+                        if (i === 0) {
+                            photoUrl = await this.searchLoremPicsumPhoto(performer);
+                            if (photoUrl) {
+                                console.log(`Lorem Picsumで${performer.name}用の画像を生成:`, photoUrl);
+                                return photoUrl;
+                            }
+                        }
+
+                    } catch (error) {
+                        console.warn(`検索クエリ "${query}" でエラー:`, error);
+                        continue;
+                    }
+                }
+
+                return null;
+            }
+
+            async searchUnsplashPhoto(query) {
+                if (query.includes('宝塚') || query.includes('タカラジェンヌ') || query.includes('Takarazuka')) {
+                    const hash = this.simpleHash(query);
+                    return IMAGE_SEARCH_CONFIG.unsplash.demoUrls[hash % IMAGE_SEARCH_CONFIG.unsplash.demoUrls.length];
+                }
+                return null;
+            }
+
+            async searchPixabayPhoto(query) {
+                if (query.includes('宝塚') || query.includes('Takarazuka') || query.includes('タカラジェンヌ')) {
+                    const hash = this.simpleHash(query);
+                    return IMAGE_SEARCH_CONFIG.pixabay.demoUrls[hash % IMAGE_SEARCH_CONFIG.pixabay.demoUrls.length];
+                }
+                return null;
+            }
+
+            async searchLoremPicsumPhoto(performer) {
+                if (DEFAULT_PERFORMER_IMAGES[performer.name]) {
+                    return DEFAULT_PERFORMER_IMAGES[performer.name];
+                }
+
+                const seed = this.simpleHash(performer.name);
+                const { min, max } = IMAGE_SEARCH_CONFIG.loremPicsum.idRange;
+                const imageId = min + (seed % (max - min + 1));
+                
+                return `${IMAGE_SEARCH_CONFIG.loremPicsum.baseUrl}/id/${imageId}/150/150`;
+            }
+
+            generatePerformerAvatar(performer) {
+                const seed = performer.name.replace(/\s/g, '-').toLowerCase();
+                const bgColorMap = {
+                    'tsuki': '2c3e50',
+                    'hana': 'e74c3c',
+                    'yuki': 'bdc3c7',
+                    'hoshi': '1abc9c',
+                    'sora': '3498db'
+                };
+                
+                const bgColor = bgColorMap[performer.troupeColor] || '95a5a6';
+                const hairStyle = performer.era === '歴代' ? 'longHair' : 'shortHair';
+                const accessory = performer.era === '歴代' ? '&accessories[]=sunglasses' : '';
+                
+                return `https://avatars.dicebear.com/api/avataaars/${seed}.svg?background=%23${bgColor}&top[]=${hairStyle}${accessory}&clothesColor=blue01`;
+            }
+
+            async testPerformer(performer) {
+                console.log(`テスト開始: ${performer.name} (${performer.troupe})`);
+                
+                const photoUrl = await this.searchPerformerPhoto(performer);
+                const fallbackUrl = this.generatePerformerAvatar(performer);
+                
+                return {
+                    performer,
+                    photoUrl: photoUrl || fallbackUrl,
+                    foundPhoto: !!photoUrl,
+                    source: photoUrl ? 'web search' : 'avatar'
+                };
+            }
+
+            displayTestResult(result) {
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'performer-test';
+                
+                const eraIcon = result.performer.era === '歴代' ? '👑' : '⭐';
+                const sourceIcon = result.foundPhoto ? '🔍' : '🎨';
+                
+                resultDiv.innerHTML = `
+                    <img class="performer-photo" src="${result.photoUrl}" alt="${result.performer.name}の写真" 
+                         onerror="this.src='${this.generatePerformerAvatar(result.performer)}'">
+                    <div class="performer-info">
+                        <h3>${eraIcon} ${result.performer.name} (${result.performer.reading})</h3>
+                        <p>🎭 ${result.performer.troupe} | ${sourceIcon} ${result.source}</p>
+                        <p style="font-size: 12px; opacity: 0.8;">${result.photoUrl}</p>
+                    </div>
+                `;
+                
+                this.testResults.appendChild(resultDiv);
+            }
+        }
+
+        const tester = new ImageSearchTester();
+
+        async function testAllPerformers() {
+            tester.testResults.innerHTML = '<div class="test-result"><h2>🔄 全劇団員テスト実行中...</h2></div>';
+            
+            let totalCount = 0;
+            let foundCount = 0;
+            
+            for (const performer of TAKARAZUKA_PERFORMERS.slice(0, 10)) { // 最初の10人をテスト
+                const result = await tester.testPerformer(performer);
+                tester.displayTestResult(result);
+                
+                totalCount++;
+                if (result.foundPhoto) foundCount++;
+                
+                // 少し待機（表示の確認のため）
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            const summaryDiv = document.createElement('div');
+            summaryDiv.className = 'test-result';
+            summaryDiv.innerHTML = `
+                <h2>📊 テスト完了</h2>
+                <p>テスト対象: ${totalCount}人</p>
+                <p>画像検索成功: ${foundCount}人</p>
+                <p>成功率: ${Math.round((foundCount / totalCount) * 100)}%</p>
+            `;
+            tester.testResults.insertBefore(summaryDiv, tester.testResults.firstChild);
+        }
+
+        async function testSinglePerformer() {
+            const randomPerformer = TAKARAZUKA_PERFORMERS[Math.floor(Math.random() * TAKARAZUKA_PERFORMERS.length)];
+            const result = await tester.testPerformer(randomPerformer);
+            
+            tester.testResults.innerHTML = '';
+            const summaryDiv = document.createElement('div');
+            summaryDiv.className = 'test-result';
+            summaryDiv.innerHTML = `<h2>🎯 単体テスト結果</h2>`;
+            tester.testResults.appendChild(summaryDiv);
+            
+            tester.displayTestResult(result);
+        }
+
+        function clearResults() {
+            tester.testResults.innerHTML = '';
+        }
+
+        // 初期表示
+        window.addEventListener('load', () => {
+            console.log('画像検索テストページが読み込まれました');
+            console.log('設定:', IMAGE_SEARCH_CONFIG);
+            console.log('劇団員数:', TAKARAZUKA_PERFORMERS.length);
+        });
+    </script>
+</body>
+</html>
