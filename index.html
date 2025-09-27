@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宝塚漢字学習アプリ ✨ 憧れのスターと一緒に漢字を覚えよう！</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- メインコンテナ -->
+    <div id="app" class="app-container">
+        <!-- ヘッダー -->
+        <header class="header">
+            <div class="header-content">
+                <h1 class="app-title">
+                    <span class="title-sparkle">✨</span>
+                    宝塚漢字学習アプリ
+                    <span class="title-sparkle">✨</span>
+                </h1>
+                <p class="subtitle">憧れのスターと一緒に漢字を覚えよう！</p>
+            </div>
+        </header>
+
+        <!-- 進捗表示 -->
+        <div class="progress-section">
+            <div class="progress-info">
+                <span id="currentQuestion">1</span> / <span id="totalQuestions">50</span> 問
+            </div>
+            <div class="progress-bar">
+                <div id="progressFill" class="progress-fill"></div>
+            </div>
+            <div class="score-info">
+                正解数: <span id="correctCount">0</span>
+            </div>
+        </div>
+
+        <!-- メイン問題エリア -->
+        <main id="mainContent" class="main-content">
+            <!-- スタート画面 -->
+            <div id="startScreen" class="screen start-screen">
+                <div class="start-content">
+                    <div class="welcome-message">
+                        <h2>ようこそ！宝塚の世界へ 🌟</h2>
+                        <p>宝塚歌劇団のスターたちの美しい芸名で漢字を学習しましょう。</p>
+                        <p>小学2年生レベル（漢字検定10級・9級）の漢字が出題されます。</p>
+                    </div>
+                    <button id="startButton" class="start-button">
+                        スタート ✨
+                    </button>
+                </div>
+            </div>
+
+            <!-- クイズ画面 -->
+            <div id="quizScreen" class="screen quiz-screen" style="display: none;">
+                <!-- 組情報 -->
+                <div class="troupe-info">
+                    <span id="troupeName" class="troupe-name"></span>
+                </div>
+
+                <!-- 劇団員情報 -->
+                <div class="performer-section">
+                    <div class="performer-photo-container">
+                        <img id="performerPhoto" class="performer-photo" alt="劇団員写真" />
+                        <div class="photo-loading" id="photoLoading">写真を読み込み中...</div>
+                    </div>
+                    <div class="performer-info">
+                        <h2 id="performerName" class="performer-name"></h2>
+                        <div id="performerReading" class="performer-reading"></div>
+                    </div>
+                </div>
+
+                <!-- 問題セクション -->
+                <div class="question-section">
+                    <div class="question-content">
+                        <h3 class="question-title">この芸名に使われている漢字の読み方は？</h3>
+                        <div id="targetKanji" class="target-kanji"></div>
+                        <div class="question-text">
+                            <span id="questionKanji" class="question-kanji"></span>
+                            の読み方を選んでください
+                        </div>
+                    </div>
+
+                    <!-- 選択肢 -->
+                    <div class="options-container">
+                        <button class="option-button" data-answer="0"></button>
+                        <button class="option-button" data-answer="1"></button>
+                        <button class="option-button" data-answer="2"></button>
+                        <button class="option-button" data-answer="3"></button>
+                    </div>
+                </div>
+
+                <!-- 結果表示 -->
+                <div id="resultSection" class="result-section" style="display: none;">
+                    <div id="resultMessage" class="result-message"></div>
+                    <div id="kanjiInfo" class="kanji-info"></div>
+                    <div id="profileSection" class="profile-section" style="display: none;">
+                        <h4>✨ スタープロフィール ✨</h4>
+                        <div id="profileContent" class="profile-content"></div>
+                    </div>
+                    <button id="nextButton" class="next-button">次の問題へ</button>
+                </div>
+            </div>
+
+            <!-- 完了画面 -->
+            <div id="completionScreen" class="screen completion-screen" style="display: none;">
+                <div class="completion-content">
+                    <h2>🎉 おめでとうございます！ 🎉</h2>
+                    <div class="final-score">
+                        <p>全 <span id="finalTotal">50</span> 問中</p>
+                        <p class="score-number"><span id="finalScore">0</span> 問正解！</p>
+                    </div>
+                    <div class="completion-message">
+                        <p>宝塚のスターたちと一緒に漢字を学習できましたね！</p>
+                        <p>正解した問題は次回から出題されません。</p>
+                        <p>また挑戦して、もっとたくさんの漢字を覚えましょう ✨</p>
+                    </div>
+                    <button id="restartButton" class="restart-button">
+                        もう一度挑戦する
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- フッター -->
+        <footer class="footer">
+            <p>&copy; 2024 宝塚漢字学習アプリ - 学習を楽しく、美しく</p>
+        </footer>
+    </div>
+
+    <!-- JavaScriptファイルを読み込み -->
+    <script src="js/data.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
