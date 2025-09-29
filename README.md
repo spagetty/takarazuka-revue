@@ -6,7 +6,8 @@
 
 ### 🎭 宝塚歌劇団のスターたちと学習
 - 月組、花組、雪組、星組、宙組の美しい芸名を使用（現役24名 + 歴代人気スター16名）
-- **🔍 Web画像検索機能**: 実際のタカラジェンヌの写真を自動検索・表示
+- **🔍 Google Custom Search API**: 実際のタカラジェンヌの顔写真を正確に検索・表示
+- **🎯 タカラジェンヌ特化検索**: 公式サイト優先、品質フィルタリング、ライセンス準拠
 - 各組のテーマカラーに合わせた美しい背景デザイン
 - 劇団員のプロフィール情報を正解時に表示
 
@@ -35,16 +36,20 @@
 
 ```
 webapp/
-├── index.html              # メインHTMLファイル
-├── test_image_search.html  # 画像検索テスト用ページ
+├── index.html                        # メインHTMLファイル
+├── test_image_search.html           # 基本画像検索テスト用ページ
+├── google-search-test.html          # Google Custom Search APIテスト用ページ
 ├── css/
-│   └── style.css          # スタイルシート（組別テーマデザイン含む）
+│   └── style.css                    # スタイルシート（組別テーマデザイン含む）
 ├── js/
-│   ├── config.js          # 画像検索API設定・キャッシュ管理
-│   ├── data.js            # 劇団員・漢字データベース（40名対応）
-│   └── app.js             # メインアプリケーションロジック（画像検索統合）
-├── README.md              # このファイル
-└── WEB_IMAGE_SEARCH.md    # 画像検索システム詳細ドキュメント
+│   ├── config.js                    # 画像検索API設定・キャッシュ管理
+│   ├── google-search-setup.js      # Google Custom Search API実装
+│   ├── data.js                      # 劇団員・漢字データベース（40名対応）
+│   └── app.js                       # メインアプリケーションロジック（Google API統合）
+├── .env.example                     # 環境変数設定テンプレート
+├── README.md                        # このファイル
+├── WEB_IMAGE_SEARCH.md             # 画像検索システム詳細ドキュメント
+└── GOOGLE_SEARCH_IMPLEMENTATION.md # Google Custom Search API実装ガイド
 ```
 
 ## 🎯 学習できる漢字例
@@ -66,21 +71,24 @@ webapp/
 ## 🛠️ 技術仕様
 
 - **フロントエンド**: HTML5, CSS3, Vanilla JavaScript
-- **画像検索**: Multi-API統合（Unsplash, Pixabay, Lorem Picsum, Wikimedia Commons）
-- **キャッシュ**: インメモリキャッシュシステム（5分間）
+- **画像検索**: Google Custom Search API（Takarazuka特化）
+- **バックアップ**: Multi-API統合（Unsplash, Pixabay, Lorem Picsum, Wikimedia Commons）
+- **キャッシュ**: インメモリキャッシュシステム（30分間）
+- **API管理**: レート制限、エラーハンドリング、フォールバック
 - **デザイン**: レスポンシブデザイン、組別テーマカラー
 - **互換性**: モダンブラウザ対応（Chrome, Firefox, Safari, Edge）
 - **アクセシビリティ**: 小学生向けの分かりやすいUI
 
 ## 🎈 今後の拡張予定
 
-- ~~実際のWikipedia APIを使用した劇団員写真の取得~~ ✅ **実装完了**: Web画像検索システム
-- 実際のUnsplash・Pixabay APIキーの本格運用
+- ~~実際のWikipedia APIを使用した劇団員写真の取得~~ ✅ **実装完了**: Google Custom Search API
+- ~~画像検索でたらめ問題の解決~~ ✅ **実装完了**: タカラジェンヌ特化検索システム
 - 音声読み上げ機能
 - 学習履歴の保存機能  
 - 難易度別コース（3級、4級レベル）
 - 成績レポート機能
-- 顔認識による画像品質フィルタリング
+- AI顔認識による画像品質向上
+- リアルタイム画像更新システム
 
 ## 👥 対象ユーザー
 
@@ -90,12 +98,14 @@ webapp/
 
 ## 🎊 特別な機能
 
-### 🔍 Web画像検索システム（NEW!）
-- **マルチソース検索**: Unsplash、Pixabay、Lorem Picsum、Wikimedia Commons
-- **インテリジェント検索**: 劇団員名 + 宝塚関連キーワードで最適化
-- **高速キャッシュ**: 5分間の検索結果キャッシュでパフォーマンス向上
-- **フォールバック**: 画像が見つからない場合は美しいアバターを自動生成
-- **テストページ**: `/test_image_search.html` で検索機能の動作確認可能
+### 🔍 Google Custom Search APIシステム（NEW!）
+- **Google Custom Search API**: 正確なタカラジェンヌの顔写真を検索・取得
+- **タカラジェンヌ特化**: 公式サイト優先、品質フィルタリング機能
+- **マルチクエリ最適化**: 劇団員名・組名・時代を組み合わせた検索戦略
+- **ライセンス準拠**: Creative Commons等の適正ライセンス画像のみ使用
+- **レート制限管理**: Google API制限に準拠した安全なアクセス制御
+- **インテリジェントフォールバック**: 検索失敗時の美しいアバター生成
+- **専用テストページ**: `/google-search-test.html` でGoogle API機能をテスト可能
 
 ### 📊 学習サポート機能
 - **進捗管理**: 現在の問題番号と正解数をリアルタイム表示
