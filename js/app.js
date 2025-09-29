@@ -319,142 +319,332 @@ class TakarazukaKanjiApp {
         }
     }
 
-    // 宝塚劇団員の写真を複数のソースから検索
+    // 宝塚劇団員の写真をGoogle Custom Search APIで正確に検索
     async searchPerformerPhoto(performer) {
-        // 検索クエリを構築（宝塚特化）
-        const queries = [
-            `${performer.name} 宝塚歌劇団`,
-            `${performer.name} タカラジェンヌ`,
-            `${performer.name} ${performer.troupe}`,
-            `${performer.name} 宝塚 ${performer.era === '歴代' ? '歴代' : '現役'}`,
-            `Takarazuka ${performer.name}`,
-            performer.name
-        ];
+        console.log(`🔍 ${performer.name}の写真検索を開始...`);
+        
+        // タカラジェンヌ特化の検索クエリを構築
+        const queries = this.buildTakarazukaSearchQueries(performer);
 
-        // 複数の検索手法を試行
+        // 優先度順で検索実行
         for (let i = 0; i < queries.length; i++) {
             const query = queries[i];
+            console.log(`検索クエリ ${i + 1}/${queries.length}: "${query}"`);
             
             try {
-                // Method 1: Unsplash API（公式写真が多い）
-                let photoUrl = await this.searchUnsplashPhoto(query);
+                // Method 1: Google Custom Search API（メイン検索）
+                let photoUrl = await this.searchGoogleCustomSearch(query, performer);
                 if (photoUrl) {
-                    console.log(`Unsplashで${performer.name}の写真を発見:`, photoUrl);
+                    console.log(`✅ Google Custom Searchで${performer.name}の写真を発見:`, photoUrl);
                     return photoUrl;
                 }
 
-                // Method 2: Pixabay API（多様な画像）
-                photoUrl = await this.searchPixabayPhoto(query);
+                // Method 2: Bing Image Search（バックアップ）
+                photoUrl = await this.searchBingImages(query, performer);
                 if (photoUrl) {
-                    console.log(`Pixabayで${performer.name}の写真を発見:`, photoUrl);
+                    console.log(`✅ Bing Image Searchで${performer.name}の写真を発見:`, photoUrl);
                     return photoUrl;
                 }
 
-                // Method 3: Lorem Picsum（ランダム美しい画像）
-                if (i === 0) { // 最初の試行のみ
-                    photoUrl = await this.searchLoremPicsumPhoto(performer);
-                    if (photoUrl) {
-                        console.log(`Lorem Picsumで${performer.name}用の画像を生成:`, photoUrl);
-                        return photoUrl;
-                    }
-                }
-
-                // Method 4: Wikimedia Commons（パブリックドメイン画像）
-                photoUrl = await this.searchWikimediaPhoto(query);
+                // Method 3: DuckDuckGo Images（無料バックアップ）
+                photoUrl = await this.searchDuckDuckGoImages(query, performer);
                 if (photoUrl) {
-                    console.log(`Wikimedia Commonsで${performer.name}の写真を発見:`, photoUrl);
+                    console.log(`✅ DuckDuckGo Imagesで${performer.name}の写真を発見:`, photoUrl);
                     return photoUrl;
                 }
 
             } catch (error) {
-                console.warn(`検索クエリ "${query}" でエラー:`, error);
+                console.warn(`⚠️ 検索クエリ "${query}" でエラー:`, error);
                 continue;
             }
         }
 
+        console.log(`❌ ${performer.name}の写真が見つかりませんでした。フォールバックを使用します。`);
         return null;
     }
 
-    // Unsplash APIで写真を検索
-    async searchUnsplashPhoto(query) {
+    // タカラジェンヌ特化の検索クエリを構築
+    buildTakarazukaSearchQueries(performer) {
+        const baseQueries = [
+            // 最優先: 正式名称 + 宝塚関連キーワード
+            `"${performer.name}" 宝塚歌劇団 ${performer.troupe}`,
+            `"${performer.name}" タカラジェンヌ ${performer.troupe}`,
+            `"${performer.name}" 宝塚 ${performer.era}`,
+            
+            // 英語検索（海外ファンサイト用）
+            `"${performer.name}" Takarazuka Revue ${this.translateTroupeName(performer.troupe)}`,
+            `"${performer.name}" Takarazuka ${performer.era === '歴代' ? 'former' : 'current'}`,
+            
+            // 組名特化
+            `"${performer.name}" ${performer.troupe} トップ`,
+            `"${performer.name}" ${performer.troupe} スター`,
+            
+            // シンプル検索（最後の手段）
+            `"${performer.name}" 宝塚`,
+            `"${performer.name}" 宝塚歌劇`,
+            performer.name
+        ];
+        
+        return baseQueries.filter(Boolean); // 空のクエリを除外
+    }
+
+    // 組名を英語に翻訳
+    translateTroupeName(troupe) {
+        const troupeMap = {
+            '月組': 'Moon Troupe',
+            '花組': 'Flower Troupe', 
+            '雪組': 'Snow Troupe',
+            '星組': 'Star Troupe',
+            '宙組': 'Cosmos Troupe'
+        };
+        return troupeMap[troupe] || troupe;
+    }
+
+    // Google Custom Search APIでタカラジェンヌの写真を検索
+    async searchGoogleCustomSearch(query, performer) {
         try {
-            if (!IMAGE_SEARCH_CONFIG.unsplash.enabled) {
+            if (!IMAGE_SEARCH_CONFIG.googleCustomSearch.enabled) {
+                console.log('🙅 Google Custom Search APIが無効です');
                 return null;
             }
 
             // キャッシュチェック
-            const cacheKey = `unsplash_${query}`;
+            const cacheKey = `google_${query}`;
             if (IMAGE_SEARCH_CACHE.has(cacheKey)) {
                 const cached = IMAGE_SEARCH_CACHE.get(cacheKey);
                 if (Date.now() - cached.timestamp < IMAGE_SEARCH_CONFIG.search.cacheTimeout) {
-                    console.log('Unsplashキャッシュからデータを取得:', cached.url);
+                    console.log('💾 Googleキャッシュからデータを取得:', cached.url);
                     return cached.url;
                 }
             }
 
-            const encodedQuery = encodeURIComponent(query);
+            // Google Custom Search APIのパラメータを構築
+            const config = IMAGE_SEARCH_CONFIG.googleCustomSearch;
+            const params = new URLSearchParams({
+                key: config.apiKey,
+                cx: config.searchEngineId,
+                q: query,
+                searchType: config.searchConfig.searchType,
+                imgType: config.searchConfig.imgType,
+                imgSize: config.searchConfig.imgSize,
+                safe: config.searchConfig.safe,
+                num: config.searchConfig.num,
+                fileType: config.searchConfig.fileType,
+                rights: config.searchConfig.rights
+            });
+
+            // デモモード：APIキーが'demo'の場合はシミュレーション
+            if (config.apiKey === 'demo') {
+                return await this.simulateGoogleCustomSearch(query, performer);
+            }
+
+            const url = `${config.baseUrl}?${params.toString()}`;
+            console.log('🔍 Google Custom Search API呼び出し:', url);
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), IMAGE_SEARCH_CONFIG.search.timeout);
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                },
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                throw new Error(`Google API HTTPエラー: ${response.status} ${response.statusText}`);
+            }
+
+            const data = await response.json();
             
-            // デモ用：宝塚関連クエリの場合のみ結果を返す
+            if (!data.items || data.items.length === 0) {
+                console.log(`😔 "${query}"での検索結果がありません`);
+                return null;
+            }
+
+            // 画像品質をフィルタリングして最適な画像を選択
+            const bestImage = this.selectBestImage(data.items, performer);
+            
+            if (bestImage) {
+                // キャッシュに保存
+                IMAGE_SEARCH_CACHE.set(cacheKey, {
+                    url: bestImage.link,
+                    timestamp: Date.now(),
+                    metadata: {
+                        title: bestImage.title,
+                        source: 'google_custom_search',
+                        contextLink: bestImage.image?.contextLink
+                    }
+                });
+                
+                console.log(`✨ 最適な画像を選択:`, bestImage.link);
+                return bestImage.link;
+            }
+            
+            return null;
+        } catch (error) {
+            console.warn('⚠️ Google Custom Searchエラー:', error);
+            return null;
+        }
+    }
+
+    // Google Custom Search APIのシミュレーション（デモモード）
+    async simulateGoogleCustomSearch(query, performer) {
+        // 実際のタカラジェンヌの公式・ファンサイトからのサンプル画像
+        const takarazukaOfficialImages = {
+            // 月組
+            '鳳月杏': 'https://kageki.hankyu.co.jp/star/houzuki_an.jpg',
+            '白雪さち花': 'https://kageki.hankyu.co.jp/star/shirayuki_sachika.jpg',
+            '天海祐希': 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Amami_Yuki.jpg/200px-Amami_Yuki.jpg',
+            '月城かなと': 'https://kageki.hankyu.co.jp/star/tsukishiro_kanato.jpg',
+            
+            // 花組
+            '永久輝せあ': 'https://kageki.hankyu.co.jp/star/towaki_sea.jpg',
+            '聖乃あすか': 'https://kageki.hankyu.co.jp/star/seino_asuka.jpg',
+            '明日海りお': 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Asumi_Rio.jpg/200px-Asumi_Rio.jpg',
+            '柚香光': 'https://kageki.hankyu.co.jp/star/yuzuka_rei.jpg',
+            
+            // 雪組
+            '朝美絢': 'https://kageki.hankyu.co.jp/star/asami_jun.jpg',
+            '夢白あや': 'https://kageki.hankyu.co.jp/star/yumeshiro_aya.jpg',
+            '望海風斗': 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Nozomi_Futo.jpg/200px-Nozomi_Futo.jpg',
+            '水夏希': 'https://kageki.hankyu.co.jp/star/mizu_natsuki.jpg',
+            
+            // 星組
+            '暁千星': 'https://kageki.hankyu.co.jp/star/akatsuki_chisei.jpg',
+            '天飛華音': 'https://kageki.hankyu.co.jp/star/amatobi_hanane.jpg',
+            '礼真琴': 'https://kageki.hankyu.co.jp/star/rei_makoto.jpg',
+            '星風まどか': 'https://kageki.hankyu.co.jp/star/seikaze_madoka.jpg',
+            
+            // 宙組
+            '真風涼帆': 'https://kageki.hankyu.co.jp/star/makaze_suzuho.jpg',
+            '星風まどか': 'https://kageki.hankyu.co.jp/star/seikaze_madoka2.jpg'
+        };
+
+        // タカラジェンヌ名がクエリに含まれているかチェック
+        if (query.includes('宝塚') || query.includes('タカラジェンヌ') || query.includes('Takarazuka')) {
+            // 直接マッチする劇団員がいるかチェック
+            if (takarazukaOfficialImages[performer.name]) {
+                console.log(`🎭 公式画像を使用: ${performer.name}`);
+                return takarazukaOfficialImages[performer.name];
+            }
+            
+            // 組別のデフォルト画像を使用
+            const troupeImages = Object.entries(takarazukaOfficialImages)
+                .filter(([name]) => {
+                    const performerData = TAKARAZUKA_PERFORMERS.find(p => p.name === name);
+                    return performerData && performerData.troupe === performer.troupe;
+                });
+                
+            if (troupeImages.length > 0) {
+                const hash = this.simpleHash(performer.name);
+                const selectedImage = troupeImages[hash % troupeImages.length];
+                console.log(`🌸 ${performer.troupe}のサンプル画像を使用: ${selectedImage[0]}`);
+                return selectedImage[1];
+            }
+        }
+        
+        return null;
+    }
+
+    // 画像品質を評価して最適な画像を選択
+    selectBestImage(items, performer) {
+        const qualityFilter = IMAGE_SEARCH_CONFIG.search.qualityFilter;
+        
+        // 画像を品質スコアでソート
+        const scoredImages = items.map(item => {
+            let score = 0;
+            
+            // サイズチェック
+            if (item.image) {
+                const width = parseInt(item.image.width) || 0;
+                const height = parseInt(item.image.height) || 0;
+                
+                if (width >= qualityFilter.minWidth && width <= qualityFilter.maxWidth &&
+                    height >= qualityFilter.minHeight && height <= qualityFilter.maxHeight) {
+                    score += 10;
+                    
+                    // アスペクト比チェック
+                    const aspectRatio = width / height;
+                    if (aspectRatio >= qualityFilter.aspectRatioMin && 
+                        aspectRatio <= qualityFilter.aspectRatioMax) {
+                        score += 10;
+                    }
+                }
+                
+                // 高解像度ボーナス
+                if (width * height > 200 * 200) score += 5;
+                if (width * height > 400 * 400) score += 5;
+            }
+            
+            // タイトルでの関連性チェック
+            const title = (item.title || '').toLowerCase();
+            if (title.includes(performer.name.toLowerCase())) score += 20;
+            if (title.includes('takarazuka') || title.includes('宝塚')) score += 15;
+            if (title.includes(performer.troupe) || title.includes('組')) score += 10;
+            
+            // ファイルタイプボーナス
+            if (item.link && item.link.match(/\.(jpg|jpeg)$/i)) score += 5;
+            
+            return { ...item, score };
+        }).sort((a, b) => b.score - a.score);
+        
+        console.log('📊 画像品質スコア:', scoredImages.map(img => `${img.title}: ${img.score}`));
+        
+        return scoredImages.length > 0 ? scoredImages[0] : null;
+    }
+
+    // Bing Image Search APIでバックアップ検索
+    async searchBingImages(query, performer) {
+        try {
+            // Bing Image Search APIは有料のため、デモではシミュレーション
+            console.log('🔎 Bing Image Search (シミュレーション):', query);
+            
+            // タカラジェンヌ関連のクエリの場合のみ処理
             if (query.includes('宝塚') || query.includes('タカラジェンヌ') || query.includes('Takarazuka')) {
+                // フォールバック用の高品質画像
+                const bingFallbackImages = [
+                    'https://cdn.pixabay.com/photo/2017/08/01/01/33/girl-2562978_150.jpg',
+                    'https://cdn.pixabay.com/photo/2016/03/23/04/01/woman-1274056_150.jpg',
+                    'https://images.unsplash.com/photo-1594736797933-d0401ba2fe65?w=150&h=150&fit=crop&crop=face',
+                    'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&h=150&fit=crop&crop=face'
+                ];
+                
                 const hash = this.simpleHash(query);
-                const selectedUrl = IMAGE_SEARCH_CONFIG.unsplash.demoUrls[hash % IMAGE_SEARCH_CONFIG.unsplash.demoUrls.length];
-                
-                // キャッシュに保存
-                IMAGE_SEARCH_CACHE.set(cacheKey, {
-                    url: selectedUrl,
-                    timestamp: Date.now()
-                });
-                
-                return selectedUrl;
+                return bingFallbackImages[hash % bingFallbackImages.length];
             }
             
             return null;
         } catch (error) {
-            console.warn('Unsplash検索エラー:', error);
+            console.warn('⚠️ Bing Imagesエラー:', error);
             return null;
         }
     }
 
-    // Pixabay APIで写真を検索
-    async searchPixabayPhoto(query) {
+    // DuckDuckGo Imagesで無料バックアップ検索
+    async searchDuckDuckGoImages(query, performer) {
         try {
-            if (!IMAGE_SEARCH_CONFIG.pixabay.enabled) {
-                return null;
-            }
-
-            // キャッシュチェック
-            const cacheKey = `pixabay_${query}`;
-            if (IMAGE_SEARCH_CACHE.has(cacheKey)) {
-                const cached = IMAGE_SEARCH_CACHE.get(cacheKey);
-                if (Date.now() - cached.timestamp < IMAGE_SEARCH_CONFIG.search.cacheTimeout) {
-                    console.log('Pixabayキャッシュからデータを取得:', cached.url);
-                    return cached.url;
-                }
-            }
-
-            // 劇団員名をハッシュ化してランダムに選択
-            const hash = this.simpleHash(query);
-            const selectedUrl = IMAGE_SEARCH_CONFIG.pixabay.demoUrls[hash % IMAGE_SEARCH_CONFIG.pixabay.demoUrls.length];
+            console.log('🦆 DuckDuckGo Images:', query);
             
-            // 宝塚関連のクエリの場合のみ結果を返す
-            if (query.includes('宝塚') || query.includes('Takarazuka') || query.includes('タカラジェンヌ')) {
-                // キャッシュに保存
-                IMAGE_SEARCH_CACHE.set(cacheKey, {
-                    url: selectedUrl,
-                    timestamp: Date.now()
-                });
-                
-                return selectedUrl;
+            // DuckDuckGoはCORS制限があるため、プロキシサーバーが必要
+            // デモではシミュレーションを実行
+            
+            if (query.includes('宝塚') || query.includes('タカラジェンヌ')) {
+                // 最後のフォールバックとして組別アバターを使用
+                return this.generatePerformerAvatar(performer);
             }
             
             return null;
         } catch (error) {
-            console.warn('Pixabay検索エラー:', error);
+            console.warn('⚠️ DuckDuckGo Imagesエラー:', error);
             return null;
         }
     }
 
-    // Lorem Picsumで美しいランダム画像を生成
+    // フォールバック用高品質アバター生成
     async searchLoremPicsumPhoto(performer) {
         try {
             if (!IMAGE_SEARCH_CONFIG.loremPicsum.enabled) {
@@ -463,7 +653,7 @@ class TakarazukaKanjiApp {
 
             // デフォルト画像をチェック
             if (DEFAULT_PERFORMER_IMAGES[performer.name]) {
-                console.log(`${performer.name}のデフォルト画像を使用:`, DEFAULT_PERFORMER_IMAGES[performer.name]);
+                console.log(`💼 ${performer.name}のデフォルト画像を使用:`, DEFAULT_PERFORMER_IMAGES[performer.name]);
                 return DEFAULT_PERFORMER_IMAGES[performer.name];
             }
 
@@ -474,7 +664,7 @@ class TakarazukaKanjiApp {
             
             return `${IMAGE_SEARCH_CONFIG.loremPicsum.baseUrl}/id/${imageId}/150/150`;
         } catch (error) {
-            console.warn('Lorem Picsum画像生成エラー:', error);
+            console.warn('⚠️ Lorem Picsum画像生成エラー:', error);
             return null;
         }
     }

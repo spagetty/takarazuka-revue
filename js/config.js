@@ -3,7 +3,25 @@
 
 // 画像検索API設定
 const IMAGE_SEARCH_CONFIG = {
-    // Unsplash API設定
+    // Google Custom Search API設定（メイン検索エンジン）
+    googleCustomSearch: {
+        enabled: true,
+        apiKey: 'demo', // 実際の実装では環境変数から取得: process.env.GOOGLE_SEARCH_API_KEY
+        searchEngineId: 'demo', // 実際の実装では環境変数から取得: process.env.GOOGLE_SEARCH_ENGINE_ID
+        baseUrl: 'https://www.googleapis.com/customsearch/v1',
+        // 宝塚特化検索設定
+        searchConfig: {
+            searchType: 'image',
+            imgType: 'face', // 顔写真に特化
+            imgSize: 'medium',
+            safe: 'active',
+            num: 3, // 上位3件を取得
+            fileType: 'jpg,png',
+            rights: 'cc_publicdomain,cc_attribute,cc_sharealike' // 使用可能なライセンス
+        }
+    },
+    
+    // Unsplash API設定（フォールバック用）
     unsplash: {
         enabled: true,
         accessKey: 'demo', // 実際の実装では環境変数から取得
@@ -51,10 +69,19 @@ const IMAGE_SEARCH_CONFIG = {
     
     // 検索設定
     search: {
-        timeout: 5000, // 5秒でタイムアウト
+        timeout: 8000, // 8秒でタイムアウト（Google APIのため延長）
         maxRetries: 3,
-        cacheTimeout: 300000, // 5分間キャッシュ
-        preferJapanese: true
+        cacheTimeout: 1800000, // 30分間キャッシュ（Google API制限対策）
+        preferJapanese: true,
+        // 画像品質フィルタリング設定
+        qualityFilter: {
+            minWidth: 100,
+            minHeight: 100,
+            maxWidth: 1000,
+            maxHeight: 1000,
+            aspectRatioMin: 0.7, // 縦長すぎる画像を除外
+            aspectRatioMax: 1.5  // 横長すぎる画像を除外
+        }
     }
 };
 

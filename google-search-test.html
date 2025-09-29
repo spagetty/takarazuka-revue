@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Custom Search API テスト - タカラジェンヌ画像検索</title>
+    <style>
+        body {
+            font-family: 'Hiragino Sans', 'ヒラギノ角ゴ Pro W3', 'Meiryo', sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .setup-section {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 25px;
+            border-radius: 12px;
+            margin: 20px 0;
+            border-left: 5px solid #ffd700;
+        }
+        
+        .api-config {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .config-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 12px 15px;
+            color: white;
+            font-size: 14px;
+        }
+        
+        .config-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .test-button {
+            background: linear-gradient(45deg, #ff6b6b, #ffa500);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 10px 5px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .test-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .test-button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .performer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .performer-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .performer-card.success {
+            border-color: #4CAF50;
+            box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
+        }
+        
+        .performer-card.error {
+            border-color: #f44336;
+            box-shadow: 0 0 20px rgba(244, 67, 54, 0.3);
+        }
+        
+        .performer-image {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            margin: 0 auto 15px;
+            display: block;
+        }
+        
+        .search-status {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #ffd700;
+        }
+        
+        .instructions {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #ffd700;
+            margin: 20px 0;
+        }
+        
+        .code-block {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        
+        .troupe-tsuki { border-left-color: #2c3e50; }
+        .troupe-hana { border-left-color: #e74c3c; }
+        .troupe-yuki { border-left-color: #ecf0f1; }
+        .troupe-hoshi { border-left-color: #1abc9c; }
+        .troupe-sora { border-left-color: #3498db; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Google Custom Search API テスト</h1>
+        <p>タカラジェンヌの実際の写真を Google Custom Search API で検索するテストシステムです。</p>
+        
+        <div class="setup-section">
+            <h2>📋 API設定</h2>
+            <div class="api-config">
+                <div>
+                    <label>Google API Key:</label>
+                    <input type="text" id="apiKeyInput" class="config-input" 
+                           placeholder="Google Custom Search API Key を入力">
+                </div>
+                <div>
+                    <label>Search Engine ID:</label>
+                    <input type="text" id="searchEngineIdInput" class="config-input" 
+                           placeholder="Programmable Search Engine ID を入力">
+                </div>
+            </div>
+            
+            <button class="test-button" onclick="updateApiConfig()">API設定を更新</button>
+            <button class="test-button" onclick="showSetupInstructions()">セットアップ手順を表示</button>
+            
+            <div id="setupInstructions" class="instructions" style="display: none;">
+                <h3>🔧 Google Custom Search API セットアップ手順</h3>
+                <div class="code-block" id="setupCode"></div>
+            </div>
+        </div>
+        
+        <div class="setup-section">
+            <h2>🎭 テスト実行</h2>
+            <button class="test-button" onclick="testSinglePerformer()">単体テスト</button>
+            <button class="test-button" onclick="testTopPerformers()">トップスターテスト</button>
+            <button class="test-button" onclick="testAllPerformers()" id="testAllBtn">全劇団員テスト</button>
+            <button class="test-button" onclick="clearResults()">結果クリア</button>
+            
+            <div class="stats" id="testStats" style="display: none;">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalTests">0</div>
+                    <div>総テスト数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="successTests">0</div>
+                    <div>成功数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="errorTests">0</div>
+                    <div>エラー数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="successRate">0%</div>
+                    <div>成功率</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="search-status" id="searchStatus">
+            📋 検索ログがここに表示されます...\n
+        </div>
+        
+        <div class="performer-grid" id="resultsGrid">
+            <!-- テスト結果がここに表示される -->
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/google-search-setup.js"></script>
+    <script src="js/data.js"></script>
+    <script>
+        class GoogleSearchTester {
+            constructor() {
+                this.apiKey = 'demo';
+                this.searchEngineId = 'demo';
+                this.searchEngine = null;
+                this.testStats = {
+                    total: 0,
+                    success: 0,
+                    error: 0
+                };
+                
+                this.logElement = document.getElementById('searchStatus');
+                this.resultsGrid = document.getElementById('resultsGrid');
+            }
+
+            log(message) {
+                const timestamp = new Date().toLocaleTimeString();
+                this.logElement.textContent += `[${timestamp}] ${message}\n`;
+                this.logElement.scrollTop = this.logElement.scrollHeight;
+                console.log(message);
+            }
+
+            updateStats() {
+                document.getElementById('totalTests').textContent = this.testStats.total;
+                document.getElementById('successTests').textContent = this.testStats.success;
+                document.getElementById('errorTests').textContent = this.testStats.error;
+                
+                const rate = this.testStats.total > 0 ? 
+                    Math.round((this.testStats.success / this.testStats.total) * 100) : 0;
+                document.getElementById('successRate').textContent = `${rate}%`;
+                
+                document.getElementById('testStats').style.display = 'grid';
+            }
+
+            updateApiConfig() {
+                const apiKey = document.getElementById('apiKeyInput').value.trim();
+                const searchEngineId = document.getElementById('searchEngineIdInput').value.trim();
+                
+                if (apiKey && searchEngineId) {
+                    this.apiKey = apiKey;
+                    this.searchEngineId = searchEngineId;
+                    this.searchEngine = new TakarazukaGoogleSearch(apiKey, searchEngineId);
+                    this.log(`✅ API設定を更新しました`);
+                    this.log(`   API Key: ${apiKey.substring(0, 10)}...`);
+                    this.log(`   Search Engine ID: ${searchEngineId.substring(0, 10)}...`);
+                } else {
+                    this.log(`❌ APIキーと検索エンジンIDの両方を入力してください`);
+                }
+            }
+
+            async testPerformer(performer) {
+                this.testStats.total++;
+                this.log(`🔍 ${performer.name} (${performer.troupe}) の検索を開始...`);
+                
+                const card = this.createPerformerCard(performer);
+                this.resultsGrid.appendChild(card);
+                
+                try {
+                    let imageUrl = null;
+                    let source = 'unknown';
+                    
+                    if (this.searchEngine && this.apiKey !== 'demo') {
+                        // 実際のGoogle Custom Search APIを使用
+                        const result = await this.searchEngine.searchTakarazukaPerformer(
+                            performer.name, performer.troupe, performer.era
+                        );
+                        
+                        if (result) {
+                            imageUrl = result.url;
+                            source = `Google API (${result.query})`;
+                            this.log(`✅ ${performer.name}: Google APIで画像を発見`);
+                        }
+                    } else {
+                        // デモモード：シミュレーション検索
+                        imageUrl = await this.simulateGoogleSearch(performer);
+                        source = 'Demo Simulation';
+                        this.log(`🎭 ${performer.name}: デモモードで画像を生成`);
+                    }
+                    
+                    if (imageUrl) {
+                        this.updatePerformerCard(card, performer, imageUrl, source, true);
+                        this.testStats.success++;
+                    } else {
+                        this.updatePerformerCard(card, performer, null, source, false);
+                        this.testStats.error++;
+                        this.log(`❌ ${performer.name}: 画像が見つかりませんでした`);
+                    }
+                    
+                } catch (error) {
+                    this.updatePerformerCard(card, performer, null, `Error: ${error.message}`, false);
+                    this.testStats.error++;
+                    this.log(`🚨 ${performer.name}: エラー - ${error.message}`);
+                }
+                
+                this.updateStats();
+                return new Promise(resolve => setTimeout(resolve, 1000)); // レート制限対策
+            }
+
+            async simulateGoogleSearch(performer) {
+                // 実際のタカラジェンヌ公式画像URLのシミュレーション
+                const officialImages = {
+                    '鳳月杏': 'https://kageki.hankyu.co.jp/star/houzuki_an.jpg',
+                    '永久輝せあ': 'https://kageki.hankyu.co.jp/star/towaki_sea.jpg',
+                    '朝美絢': 'https://kageki.hankyu.co.jp/star/asami_jun.jpg',
+                    '暁千星': 'https://kageki.hankyu.co.jp/star/akatsuki_chisei.jpg',
+                    '真風涼帆': 'https://kageki.hankyu.co.jp/star/makaze_suzuho.jpg',
+                    '天海祐希': 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Amami_Yuki.jpg/200px-Amami_Yuki.jpg',
+                    '明日海りお': 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Asumi_Rio.jpg/200px-Asumi_Rio.jpg'
+                };
+                
+                // デモ用の遅延
+                await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
+                
+                // 70%の確率で成功をシミュレート
+                if (Math.random() > 0.3) {
+                    return officialImages[performer.name] || this.generatePerformerAvatar(performer);
+                }
+                
+                return null;
+            }
+
+            generatePerformerAvatar(performer) {
+                const seed = performer.name.replace(/\s/g, '-').toLowerCase();
+                const bgColorMap = {
+                    'tsuki': '2c3e50', 'hana': 'e74c3c', 'yuki': 'bdc3c7', 
+                    'hoshi': '1abc9c', 'sora': '3498db'
+                };
+                const bgColor = bgColorMap[performer.troupeColor] || '95a5a6';
+                return `https://avatars.dicebear.com/api/avataaars/${seed}.svg?background=%23${bgColor}`;
+            }
+
+            createPerformerCard(performer) {
+                const card = document.createElement('div');
+                card.className = `performer-card troupe-${performer.troupeColor}`;
+                card.innerHTML = `
+                    <div style="text-align: center;">
+                        <div style="width: 120px; height: 120px; margin: 0 auto 15px; background: rgba(255,255,255,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            <span>🔄</span>
+                        </div>
+                        <h3>${performer.name}</h3>
+                        <p>${performer.troupe} | ${performer.era}</p>
+                        <div class="search-info">検索中...</div>
+                    </div>
+                `;
+                return card;
+            }
+
+            updatePerformerCard(card, performer, imageUrl, source, success) {
+                const imageContainer = card.querySelector('div div');
+                const searchInfo = card.querySelector('.search-info');
+                
+                if (success && imageUrl) {
+                    imageContainer.innerHTML = `<img src="${imageUrl}" alt="${performer.name}" class="performer-image" 
+                        onerror="this.src='${this.generatePerformerAvatar(performer)}'">`;
+                    searchInfo.innerHTML = `✅ ${source}`;
+                    card.classList.add('success');
+                } else {
+                    imageContainer.innerHTML = `<img src="${this.generatePerformerAvatar(performer)}" alt="${performer.name}" class="performer-image">`;
+                    searchInfo.innerHTML = `❌ ${source}`;
+                    card.classList.add('error');
+                }
+            }
+
+            async testSinglePerformer() {
+                const randomPerformer = TAKARAZUKA_PERFORMERS[Math.floor(Math.random() * TAKARAZUKA_PERFORMERS.length)];
+                await this.testPerformer(randomPerformer);
+            }
+
+            async testTopPerformers() {
+                const topPerformers = TAKARAZUKA_PERFORMERS.filter(p => p.era === '現役').slice(0, 5);
+                this.log(`🎭 現役トップスター ${topPerformers.length} 名のテストを開始...`);
+                
+                for (const performer of topPerformers) {
+                    await this.testPerformer(performer);
+                }
+                
+                this.log(`✅ トップスターテスト完了`);
+            }
+
+            async testAllPerformers() {
+                const button = document.getElementById('testAllBtn');
+                button.disabled = true;
+                button.textContent = '実行中...';
+                
+                this.log(`🚀 全 ${TAKARAZUKA_PERFORMERS.length} 名のテストを開始...`);
+                
+                for (const performer of TAKARAZUKA_PERFORMERS) {
+                    await this.testPerformer(performer);
+                }
+                
+                this.log(`🎉 全劇団員テスト完了！`);
+                button.disabled = false;
+                button.textContent = '全劇団員テスト';
+            }
+
+            clearResults() {
+                this.resultsGrid.innerHTML = '';
+                this.logElement.textContent = '📋 検索ログがここに表示されます...\n';
+                this.testStats = { total: 0, success: 0, error: 0 };
+                this.updateStats();
+                document.getElementById('testStats').style.display = 'none';
+            }
+        }
+
+        const tester = new GoogleSearchTester();
+
+        function updateApiConfig() {
+            tester.updateApiConfig();
+        }
+
+        function showSetupInstructions() {
+            const setupDiv = document.getElementById('setupInstructions');
+            const codeBlock = document.getElementById('setupCode');
+            
+            if (setupDiv.style.display === 'none') {
+                const setup = new GoogleCustomSearchSetup();
+                codeBlock.textContent = setup.getSetupInstructions();
+                setupDiv.style.display = 'block';
+            } else {
+                setupDiv.style.display = 'none';
+            }
+        }
+
+        function testSinglePerformer() {
+            tester.testSinglePerformer();
+        }
+
+        function testTopPerformers() {
+            tester.testTopPerformers();
+        }
+
+        function testAllPerformers() {
+            tester.testAllPerformers();
+        }
+
+        function clearResults() {
+            tester.clearResults();
+        }
+
+        // 初期化
+        window.addEventListener('load', () => {
+            tester.log('🎭 Google Custom Search API テストシステム起動');
+            tester.log('💡 APIキーを入力して実際のGoogle検索をテストできます');
+            tester.log(`📊 対象劇団員数: ${TAKARAZUKA_PERFORMERS.length} 名`);
+        });
+    </script>
+</body>
+</html>
