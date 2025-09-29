@@ -1,0 +1,616 @@
+/* キラキラエフェクトと正解時演出 */
+
+/* キラキラパーティクルのベースクラス */
+.sparkle-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 9999;
+    overflow: hidden;
+}
+
+/* 個別のキラキラパーティクル */
+.sparkle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: linear-gradient(45deg, #ffd700, #fff, #ffd700);
+    border-radius: 50%;
+    animation: sparkleFloat 2s ease-out forwards;
+    box-shadow: 0 0 6px rgba(255, 215, 0, 0.8);
+}
+
+/* ダイヤモンド型のキラキラ */
+.sparkle.diamond {
+    width: 10px;
+    height: 10px;
+    background: linear-gradient(45deg, #ff69b4, #fff, #ff69b4);
+    transform: rotate(45deg);
+    border-radius: 0;
+    animation: sparkleRotate 2s ease-out forwards;
+}
+
+/* 星型のキラキラ */
+.sparkle.star {
+    width: 12px;
+    height: 12px;
+    background: #ffd700;
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    animation: sparkleStarSpin 2.5s ease-out forwards;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.9);
+}
+
+/* キラキラの浮遊アニメーション */
+@keyframes sparkleFloat {
+    0% {
+        opacity: 0;
+        transform: translateY(0) scale(0);
+    }
+    20% {
+        opacity: 1;
+        transform: translateY(-50px) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-200px) scale(0.5);
+    }
+}
+
+/* ダイヤモンドの回転アニメーション */
+@keyframes sparkleRotate {
+    0% {
+        opacity: 0;
+        transform: rotate(45deg) translateY(0) scale(0);
+    }
+    30% {
+        opacity: 1;
+        transform: rotate(225deg) translateY(-30px) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: rotate(405deg) translateY(-150px) scale(0.3);
+    }
+}
+
+/* 星の回転アニメーション */
+@keyframes sparkleStarSpin {
+    0% {
+        opacity: 0;
+        transform: translateY(0) rotate(0deg) scale(0);
+    }
+    25% {
+        opacity: 1;
+        transform: translateY(-40px) rotate(180deg) scale(1.2);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-180px) rotate(720deg) scale(0.4);
+    }
+}
+
+/* 正解時の画面全体エフェクト */
+.correct-celebration {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 8888;
+    background: radial-gradient(circle at center, rgba(255, 215, 0, 0.1) 0%, transparent 70%);
+    animation: celebrationPulse 1.5s ease-out;
+}
+
+@keyframes celebrationPulse {
+    0% {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1);
+    }
+}
+
+/* 正解メッセージの拡張エフェクト */
+.result-message.correct {
+    position: relative;
+    animation: correctMessageBounce 0.8s ease-out, correctMessageGlow 2s ease-out;
+}
+
+@keyframes correctMessageBounce {
+    0% {
+        transform: scale(0.3) translateY(20px);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.1) translateY(-10px);
+        opacity: 1;
+    }
+    70% {
+        transform: scale(0.9) translateY(5px);
+    }
+    100% {
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes correctMessageGlow {
+    0%, 100% {
+        text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+    }
+    50% {
+        text-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.4);
+    }
+}
+
+/* 劇団員写真のキラキラエフェクト */
+.performer-photo.sparkle-photo {
+    animation: photoSparkle 2s ease-out;
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+}
+
+@keyframes photoSparkle {
+    0% {
+        box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 40px rgba(255, 215, 0, 0.8), 0 0 60px rgba(255, 215, 0, 0.4);
+        transform: scale(1.02);
+    }
+    100% {
+        box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+        transform: scale(1);
+    }
+}
+
+/* 選択肢ボタンの正解エフェクト */
+.option-button.correct {
+    animation: correctButtonCelebrate 1.2s ease-out;
+}
+
+@keyframes correctButtonCelebrate {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 2px 10px rgba(76, 175, 80, 0.3);
+    }
+    30% {
+        transform: scale(1.05);
+        box-shadow: 0 4px 20px rgba(76, 175, 80, 0.6), 0 0 30px rgba(255, 215, 0, 0.4);
+    }
+    60% {
+        transform: scale(0.98);
+        box-shadow: 0 6px 25px rgba(76, 175, 80, 0.8), 0 0 40px rgba(255, 215, 0, 0.6);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 2px 15px rgba(76, 175, 80, 0.4), 0 0 20px rgba(255, 215, 0, 0.3);
+    }
+}
+
+/* コンフェッティ（紙吹雪）エフェクト */
+.confetti {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: #ff69b4;
+    animation: confettiFall 3s linear forwards;
+}
+
+.confetti:nth-child(2n) {
+    background: #ffd700;
+    animation-delay: 0.2s;
+}
+
+.confetti:nth-child(3n) {
+    background: #87ceeb;
+    animation-delay: 0.4s;
+}
+
+.confetti:nth-child(4n) {
+    background: #98fb98;
+    animation-delay: 0.1s;
+}
+
+.confetti:nth-child(5n) {
+    background: #dda0dd;
+    animation-delay: 0.3s;
+}
+
+@keyframes confettiFall {
+    0% {
+        opacity: 1;
+        transform: translateY(-100vh) rotate(0deg);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(100vh) rotate(720deg);
+    }
+}
+
+/* 宝塚らしいエレガントなキラキラ */
+.elegant-sparkle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: radial-gradient(circle, #fff 0%, #ffd700 70%, transparent 100%);
+    border-radius: 50%;
+    animation: elegantSparkleFloat 4s ease-in-out infinite;
+    opacity: 0;
+}
+
+@keyframes elegantSparkleFloat {
+    0%, 100% {
+        opacity: 0;
+        transform: translateY(0) scale(0.5);
+    }
+    20% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.8;
+        transform: translateY(-30px) scale(1);
+    }
+    80% {
+        opacity: 1;
+    }
+}
+
+/* 組別のキラキラカラー */
+.sparkle.tsuki { background: linear-gradient(45deg, #2c3e50, #fff, #2c3e50); }
+.sparkle.hana { background: linear-gradient(45deg, #e74c3c, #fff, #e74c3c); }
+.sparkle.yuki { background: linear-gradient(45deg, #ecf0f1, #fff, #ecf0f1); }
+.sparkle.hoshi { background: linear-gradient(45deg, #1abc9c, #fff, #1abc9c); }
+.sparkle.sora { background: linear-gradient(45deg, #3498db, #fff, #3498db); }
+
+/* ==================== ポートフォリオページのスタイル ==================== */
+
+.portfolio-screen {
+    padding: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: white;
+}
+
+.portfolio-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.portfolio-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.portfolio-header h2 {
+    font-size: 2.5em;
+    margin-bottom: 10px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.portfolio-subtitle {
+    font-size: 1.2em;
+    opacity: 0.9;
+    margin-bottom: 0;
+}
+
+/* ポートフォリオ統計 */
+.portfolio-stats {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.stat-item {
+    text-align: center;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 15px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.stat-number {
+    display: block;
+    font-size: 2.5em;
+    font-weight: bold;
+    color: #ffd700;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.9em;
+    margin-top: 5px;
+    opacity: 0.8;
+}
+
+/* フィルターボタン */
+.portfolio-filters {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 25px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.filter-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+.filter-btn.active {
+    background: linear-gradient(45deg, #ffd700, #ffed4a);
+    color: #333;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+}
+
+/* ポートフォリオグリッド */
+.portfolio-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.portfolio-item {
+    transition: transform 0.3s ease;
+}
+
+.portfolio-item:hover {
+    transform: translateY(-5px) scale(1.02);
+}
+
+/* ポートフォリオカード */
+.portfolio-card {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    color: #333;
+    position: relative;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    border: 2px solid transparent;
+}
+
+.portfolio-card:hover {
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* 組別カードカラー */
+.portfolio-card.troupe-tsuki {
+    border-color: #2c3e50;
+    background: linear-gradient(135deg, rgba(44, 62, 80, 0.1), rgba(255, 255, 255, 0.95));
+}
+
+.portfolio-card.troupe-hana {
+    border-color: #e74c3c;
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.1), rgba(255, 255, 255, 0.95));
+}
+
+.portfolio-card.troupe-yuki {
+    border-color: #ecf0f1;
+    background: linear-gradient(135deg, rgba(236, 240, 241, 0.2), rgba(255, 255, 255, 0.95));
+}
+
+.portfolio-card.troupe-hoshi {
+    border-color: #1abc9c;
+    background: linear-gradient(135deg, rgba(26, 188, 156, 0.1), rgba(255, 255, 255, 0.95));
+}
+
+.portfolio-card.troupe-sora {
+    border-color: #3498db;
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(255, 255, 255, 0.95));
+}
+
+.card-header {
+    padding: 20px 20px 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.performer-name {
+    font-size: 1.4em;
+    font-weight: bold;
+    margin: 0;
+    color: #2c3e50;
+}
+
+.troupe-badge {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    color: white;
+    padding: 5px 12px;
+    border-radius: 15px;
+    font-size: 0.8em;
+    font-weight: 500;
+}
+
+.card-body {
+    padding: 0 20px 20px;
+}
+
+.kanji-section {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.kanji-character {
+    font-size: 3em;
+    font-weight: bold;
+    color: #2c3e50;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+}
+
+.kanji-info {
+    flex: 1;
+}
+
+.kanji-level {
+    display: inline-block;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 10px;
+    font-size: 0.8em;
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+.kanji-readings {
+    display: block;
+    color: #7f8c8d;
+    font-size: 0.9em;
+}
+
+.answer-date {
+    color: #95a5a6;
+    font-size: 0.8em;
+    border-top: 1px solid #ecf0f1;
+    padding-top: 10px;
+}
+
+/* カードのキラキラ装飾 */
+.card-sparkles {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 5px;
+}
+
+.card-sparkles .sparkle {
+    animation: elegantSparkleFloat 3s ease-in-out infinite;
+    font-size: 0.8em;
+}
+
+.card-sparkles .sparkle:nth-child(1) { animation-delay: 0s; }
+.card-sparkles .sparkle:nth-child(2) { animation-delay: 1s; }
+.card-sparkles .sparkle:nth-child(3) { animation-delay: 2s; }
+
+/* 空のポートフォリオ */
+.empty-portfolio {
+    text-align: center;
+    padding: 60px 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.empty-portfolio h3 {
+    font-size: 1.8em;
+    margin-bottom: 15px;
+    color: #ffd700;
+}
+
+.empty-portfolio p {
+    font-size: 1.1em;
+    opacity: 0.8;
+    margin: 0;
+}
+
+/* ポートフォリオアクション */
+.portfolio-actions {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.portfolio-actions .btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 25px;
+    font-size: 1em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+.btn-primary {
+    background: linear-gradient(45deg, #ffd700, #ffed4a);
+    color: #333;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 215, 0, 0.6);
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+    .portfolio-stats {
+        gap: 20px;
+    }
+    
+    .stat-item {
+        padding: 15px;
+    }
+    
+    .stat-number {
+        font-size: 2em;
+    }
+    
+    .portfolio-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .card-header {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+    }
+    
+    .kanji-section {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .portfolio-actions {
+        gap: 15px;
+    }
+    
+    .portfolio-actions .btn {
+        padding: 10px 20px;
+        font-size: 0.9em;
+    }
+}

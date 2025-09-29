@@ -788,9 +788,27 @@ class TakarazukaKanjiApp {
             resultMessage.textContent = '🎉 正解です！';
             resultMessage.className = 'result-message correct';
             
+            // ✨ キラキラエフェクトと音響演出を実行 ✨
+            if (typeof takarazukaEffects !== 'undefined') {
+                // 正解時の豪華な演出を実行
+                takarazukaEffects.playCorrectCelebration(
+                    this.currentQuestion.performer, 
+                    this.currentQuestion.kanjiData
+                ).catch(error => {
+                    console.warn('エフェクト演出エラー:', error);
+                });
+                
+                // 正解ボタンにも特別なエフェクトを追加
+                const correctButton = optionButtons[this.currentQuestion.correctIndex];
+                correctButton.classList.add('correct');
+            }
+            
             // プロフィール表示
             this.showPerformerProfile();
             profileSection.style.display = 'block';
+            
+            // 正解データをローカルストレージに保存（ポートフォリオ用）
+            this.saveCorrectAnswer(this.currentQuestion.performer, this.currentQuestion.kanjiData);
         } else {
             resultMessage.textContent = '❌ 不正解です';
             resultMessage.className = 'result-message incorrect';
@@ -869,6 +887,299 @@ class TakarazukaKanjiApp {
         document.getElementById('startScreen').style.display = 'none';
         document.getElementById('quizScreen').style.display = 'none';
         document.getElementById('completionScreen').style.display = 'none';
+        // ポートフォリオ画面も非表示にする
+        const portfolioScreen = document.getElementById('portfolioScreen');
+        if (portfolioScreen) portfolioScreen.style.display = 'none';
+    }
+
+    // ✨ 正解データの保存（ポートフォリオ用）
+    saveCorrectAnswer(performer, kanjiData) {
+        try {
+            // 既存の正解データを取得
+            const savedAnswers = JSON.parse(localStorage.getItem('takarazuka_correct_answers') || '[]');
+            
+            // 新しい正解データ
+            const newAnswer = {
+                id: `${performer.name}_${kanjiData.kanji}`,
+                performer: {
+                    name: performer.name,
+                    reading: performer.reading,
+                    troupe: performer.troupe,
+                    troupeColor: performer.troupeColor,
+                    era: performer.era
+                },
+                kanjiData: {
+                    kanji: kanjiData.kanji,
+                    level: kanjiData.level,
+                    readings: kanjiData.readings
+                },
+                answeredAt: new Date().toISOString(),
+                answeredDate: new Date().toLocaleDateString('ja-JP')
+            };
+            
+            // 重複チェック（同じID）
+            const existingIndex = savedAnswers.findIndex(answer => answer.id === newAnswer.id);
+            if (existingIndex >= 0) {
+                // 既存の記録を更新（最新の日時で）
+                savedAnswers[existingIndex] = newAnswer;
+            } else {
+                // 新しい記録として追加
+                savedAnswers.push(newAnswer);
+            }
+            
+            // ローカルストレージに保存
+            localStorage.setItem('takarazuka_correct_answers', JSON.stringify(savedAnswers));
+            
+            console.log(`✅ ${performer.name} (${kanjiData.kanji}) の正解データを保存しました`);
+        } catch (error) {
+            console.error('正解データの保存エラー:', error);
+        }
+    }
+
+    // 🌟 ポートフォリオページを表示
+    showPortfolio() {
+        try {
+            // ポートフォリオ画面要素が存在しない場合は作成
+            let portfolioScreen = document.getElementById('portfolioScreen');
+            if (!portfolioScreen) {
+                this.createPortfolioScreen();
+                portfolioScreen = document.getElementById('portfolioScreen');
+            }
+
+            // 他の画面を非表示
+            this.hideAllScreens();
+            
+            // ポートフォリオデータを読み込んで表示
+            this.loadPortfolioData();
+            
+            // ポートフォリオ画面を表示
+            portfolioScreen.style.display = 'block';
+            
+        } catch (error) {
+            console.error('ポートフォリオ表示エラー:', error);
+        }
+    }
+
+    // 🌸 ポートフォリオ画面のHTMLを作成
+    createPortfolioScreen() {
+        const portfolioHTML = `
+            <div id="portfolioScreen" class="screen portfolio-screen" style="display: none;">
+                <div class="portfolio-container">
+                    <header class="portfolio-header">
+                        <h2>🌟 正解ポートフォリオ 🌟</h2>
+                        <p class="portfolio-subtitle">あなたが正解したタカラジェンヌと漢字の記録</p>
+                    </header>
+                    
+                    <div class="portfolio-stats">
+                        <div class="stat-item">
+                            <span class="stat-number" id="portfolioTotalAnswers">0</span>
+                            <span class="stat-label">正解数</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number" id="portfolioUniquePerformers">0</span>
+                            <span class="stat-label">タカラジェンヌ数</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number" id="portfolioKanjiLevels">0</span>
+                            <span class="stat-label">漢字レベル</span>
+                        </div>
+                    </div>
+
+                    <div class="portfolio-filters">
+                        <button class="filter-btn active" data-filter="all">全て</button>
+                        <button class="filter-btn" data-filter="tsuki">月組</button>
+                        <button class="filter-btn" data-filter="hana">花組</button>
+                        <button class="filter-btn" data-filter="yuki">雪組</button>
+                        <button class="filter-btn" data-filter="hoshi">星組</button>
+                        <button class="filter-btn" data-filter="sora">宙組</button>
+                    </div>
+
+                    <div id="portfolioGrid" class="portfolio-grid">
+                        <!-- ポートフォリオアイテムがここに動的生成される -->
+                    </div>
+
+                    <div class="portfolio-actions">
+                        <button class="btn btn-secondary" onclick="kanjiApp.hideAllScreens(); kanjiApp.showStartScreen();">
+                            📚 学習に戻る
+                        </button>
+                        <button class="btn btn-primary" onclick="kanjiApp.exportPortfolio();">
+                            📁 データをエクスポート
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // アプリコンテナに追加
+        document.getElementById('app').insertAdjacentHTML('beforeend', portfolioHTML);
+        
+        // フィルターボタンイベントを設定
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                // アクティブボタンを切り替え
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                
+                // フィルターを適用
+                this.filterPortfolioItems(e.target.dataset.filter);
+            });
+        });
+    }
+
+    // 📊 ポートフォリオデータを読み込んで表示
+    loadPortfolioData() {
+        try {
+            const savedAnswers = JSON.parse(localStorage.getItem('takarazuka_correct_answers') || '[]');
+            
+            if (savedAnswers.length === 0) {
+                document.getElementById('portfolioGrid').innerHTML = `
+                    <div class="empty-portfolio">
+                        <h3>💫 まだ正解がありません</h3>
+                        <p>クイズに正解してタカラジェンヌのポートフォリオを作成しましょう！</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // 統計情報を更新
+            this.updatePortfolioStats(savedAnswers);
+            
+            // ポートフォリオアイテムを生成
+            this.renderPortfolioItems(savedAnswers);
+            
+        } catch (error) {
+            console.error('ポートフォリオデータ読み込みエラー:', error);
+        }
+    }
+
+    // 📈 ポートフォリオ統計情報を更新
+    updatePortfolioStats(answers) {
+        const totalAnswers = answers.length;
+        const uniquePerformers = new Set(answers.map(a => a.performer.name)).size;
+        const uniqueLevels = new Set(answers.map(a => a.kanjiData.level)).size;
+
+        document.getElementById('portfolioTotalAnswers').textContent = totalAnswers;
+        document.getElementById('portfolioUniquePerformers').textContent = uniquePerformers;
+        document.getElementById('portfolioKanjiLevels').textContent = uniqueLevels;
+    }
+
+    // 🎨 ポートフォリオアイテムをレンダリング
+    renderPortfolioItems(answers) {
+        const grid = document.getElementById('portfolioGrid');
+        
+        // 日付順にソート（新しい順）
+        const sortedAnswers = answers.sort((a, b) => new Date(b.answeredAt) - new Date(a.answeredAt));
+        
+        const itemsHTML = sortedAnswers.map(answer => {
+            const troupeIcon = this.getTroupeIcon(answer.performer.troupe);
+            const levelColor = this.getKanjiLevelColor(answer.kanjiData.level);
+            
+            return `
+                <div class="portfolio-item" data-troupe="${answer.performer.troupeColor}">
+                    <div class="portfolio-card troupe-${answer.performer.troupeColor}">
+                        <div class="card-header">
+                            <h3 class="performer-name">${answer.performer.name}</h3>
+                            <span class="troupe-badge">${troupeIcon} ${answer.performer.troupe}</span>
+                        </div>
+                        
+                        <div class="card-body">
+                            <div class="kanji-section">
+                                <span class="kanji-character">${answer.kanjiData.kanji}</span>
+                                <div class="kanji-info">
+                                    <span class="kanji-level" style="background-color: ${levelColor}">
+                                        漢字検定 ${answer.kanjiData.level}級
+                                    </span>
+                                    <span class="kanji-readings">
+                                        ${answer.kanjiData.readings.join('、')}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="answer-date">
+                                正解日: ${answer.answeredDate}
+                            </div>
+                        </div>
+                        
+                        <div class="card-sparkles">
+                            <span class="sparkle">✨</span>
+                            <span class="sparkle">⭐</span>
+                            <span class="sparkle">💎</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        grid.innerHTML = itemsHTML;
+    }
+
+    // 🏢 組アイコンを取得
+    getTroupeIcon(troupe) {
+        const icons = {
+            '月組': '🌙',
+            '花組': '🌸',
+            '雪組': '❄️',
+            '星組': '⭐',
+            '宙組': '🌌'
+        };
+        return icons[troupe] || '🎭';
+    }
+
+    // 🎨 漢字レベル色を取得
+    getKanjiLevelColor(level) {
+        const colors = {
+            '10': '#4CAF50',  // 緑（やさしい）
+            '9': '#8BC34A',   // 若草
+            '8': '#FFC107',   // 黄色
+            '7': '#FF9800',   // オレンジ
+            '6': '#FF5722',   // 赤橙
+            '5': '#F44336'    // 赤（難しい）
+        };
+        return colors[level] || '#9C27B0'; // デフォルトは紫
+    }
+
+    // 🔍 ポートフォリオアイテムをフィルタリング
+    filterPortfolioItems(filter) {
+        const items = document.querySelectorAll('.portfolio-item');
+        
+        items.forEach(item => {
+            if (filter === 'all' || item.dataset.troupe === filter) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+
+    // 📁 ポートフォリオデータをエクスポート
+    exportPortfolio() {
+        try {
+            const savedAnswers = JSON.parse(localStorage.getItem('takarazuka_correct_answers') || '[]');
+            
+            if (savedAnswers.length === 0) {
+                alert('エクスポートするデータがありません。');
+                return;
+            }
+
+            const exportData = {
+                exportedAt: new Date().toISOString(),
+                totalAnswers: savedAnswers.length,
+                answers: savedAnswers
+            };
+
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = `takarazuka_portfolio_${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            
+            console.log('✅ ポートフォリオデータをエクスポートしました');
+        } catch (error) {
+            console.error('エクスポートエラー:', error);
+            alert('エクスポートに失敗しました。');
+        }
     }
 }
 
