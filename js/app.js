@@ -321,45 +321,24 @@ class TakarazukaKanjiApp {
 
     // 宝塚劇団員の写真をGoogle Custom Search APIで正確に検索
     async searchPerformerPhoto(performer) {
-        console.log(`🔍 ${performer.name}の写真検索を開始...`);
+        console.log(`🔍 ${performer.name}の実際の写真検索を開始...`);
         
-        // タカラジェンヌ特化の検索クエリを構築
-        const queries = this.buildTakarazukaSearchQueries(performer);
-
-        // 優先度順で検索実行
-        for (let i = 0; i < queries.length; i++) {
-            const query = queries[i];
-            console.log(`検索クエリ ${i + 1}/${queries.length}: "${query}"`);
-            
-            try {
-                // Method 1: Google Custom Search API（メイン検索）
-                let photoUrl = await this.searchGoogleCustomSearch(query, performer);
+        // RealGoogleImageSearchクラスを使用してGoogle Custom Search APIで検索
+        try {
+            if (typeof realGoogleSearch !== 'undefined') {
+                const photoUrl = await realGoogleSearch.searchTakarazukaPerformer(performer);
                 if (photoUrl) {
-                    console.log(`✅ Google Custom Searchで${performer.name}の写真を発見:`, photoUrl);
+                    console.log(`✅ Google Custom Search APIで${performer.name}の本物の写真を発見:`, photoUrl);
                     return photoUrl;
                 }
-
-                // Method 2: Bing Image Search（バックアップ）
-                photoUrl = await this.searchBingImages(query, performer);
-                if (photoUrl) {
-                    console.log(`✅ Bing Image Searchで${performer.name}の写真を発見:`, photoUrl);
-                    return photoUrl;
-                }
-
-                // Method 3: DuckDuckGo Images（無料バックアップ）
-                photoUrl = await this.searchDuckDuckGoImages(query, performer);
-                if (photoUrl) {
-                    console.log(`✅ DuckDuckGo Imagesで${performer.name}の写真を発見:`, photoUrl);
-                    return photoUrl;
-                }
-
-            } catch (error) {
-                console.warn(`⚠️ 検索クエリ "${query}" でエラー:`, error);
-                continue;
+            } else {
+                console.warn('⚠️ RealGoogleImageSearchが読み込まれていません');
             }
+        } catch (error) {
+            console.warn(`⚠️ Google Custom Search APIでエラー:`, error.message);
         }
 
-        console.log(`❌ ${performer.name}の写真が見つかりませんでした。フォールバックを使用します。`);
+        console.log(`❌ ${performer.name}の写真が見つかりませんでした。アバターを使用します。`);
         return null;
     }
 
@@ -899,6 +878,112 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
+
+// Google API設定UI関数
+function showGoogleApiConfig() {
+    const modal = document.getElementById('apiConfigModal');
+    const apiKeyInput = document.getElementById('googleApiKeyInput');
+    const searchEngineIdInput = document.getElementById('searchEngineIdInput');
+    
+    // 現在の設定値を表示
+    if (typeof localStorage !== 'undefined') {
+        apiKeyInput.value = localStorage.getItem('GOOGLE_SEARCH_API_KEY') || '';
+        searchEngineIdInput.value = localStorage.getItem('GOOGLE_SEARCH_ENGINE_ID') || '';
+    }
+    
+    modal.style.display = 'block';
+}
+
+function hideGoogleApiConfig() {
+    document.getElementById('apiConfigModal').style.display = 'none';
+    document.getElementById('apiTestResult').style.display = 'none';
+}
+
+function saveGoogleApiConfig() {
+    const apiKey = document.getElementById('googleApiKeyInput').value.trim();
+    const searchEngineId = document.getElementById('searchEngineIdInput').value.trim();
+    
+    if (!apiKey || !searchEngineId) {
+        showApiTestResult('❌ APIキーと検索エンジンIDの両方を入力してください。', 'error');
+        return;
+    }
+    
+    // LocalStorageに保存
+    if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('GOOGLE_SEARCH_API_KEY', apiKey);
+        localStorage.setItem('GOOGLE_SEARCH_ENGINE_ID', searchEngineId);
+    }
+    
+    // RealGoogleImageSearchの設定を更新
+    if (typeof realGoogleSearch !== 'undefined') {
+        realGoogleSearch.updateApiConfig(apiKey, searchEngineId);
+    }
+    
+    showApiTestResult('✅ Google API設定を保存しました！ アプリを再読み込みすると実際の写真が表示されます。', 'success');
+    
+    setTimeout(() => {
+        hideGoogleApiConfig();
+        // ページを再読み込みして新しい設定を反映
+        window.location.reload();
+    }, 2000);
+}
+
+async function testGoogleApi() {
+    const apiKey = document.getElementById('googleApiKeyInput').value.trim();
+    const searchEngineId = document.getElementById('searchEngineIdInput').value.trim();
+    
+    if (!apiKey || !searchEngineId) {
+        showApiTestResult('❌ APIキーと検索エンジンIDを入力してください。', 'error');
+        return;
+    }
+    
+    showApiTestResult('🔍 Google APIをテスト中...', 'info');
+    
+    try {
+        // テスト用の検索を実行
+        const testUrl = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${searchEngineId}&q="鳳月杏" 宝塚&searchType=image&num=1`;
+        
+        const response = await fetch(testUrl);
+        
+        if (response.ok) {
+            const data = await response.json();
+            if (data.items && data.items.length > 0) {
+                showApiTestResult('✅ Google API接続成功！実際の写真検索が可能です。', 'success');
+            } else {
+                showApiTestResult('⚠️ API接続は成功しましたが、検索結果がありません。検索エンジン設定を確認してください。', 'warning');
+            }
+        } else {
+            showApiTestResult(`❌ APIエラー: ${response.status} ${response.statusText}`, 'error');
+        }
+    } catch (error) {
+        showApiTestResult(`❌ 接続エラー: ${error.message}`, 'error');
+    }
+}
+
+function showApiTestResult(message, type) {
+    const resultDiv = document.getElementById('apiTestResult');
+    let bgColor = '#f0f0f0';
+    
+    switch (type) {
+        case 'success':
+            bgColor = '#d4edda';
+            break;
+        case 'error':
+            bgColor = '#f8d7da';
+            break;
+        case 'warning':
+            bgColor = '#fff3cd';
+            break;
+        case 'info':
+            bgColor = '#d1ecf1';
+            break;
+    }
+    
+    resultDiv.style.backgroundColor = bgColor;
+    resultDiv.style.color = '#333';
+    resultDiv.textContent = message;
+    resultDiv.style.display = 'block';
+}
 
 // ユーティリティ関数
 function formatPerformerInfo(performer) {

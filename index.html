@@ -31,6 +31,40 @@
             </div>
             <div class="score-info">
                 正解数: <span id="correctCount">0</span>
+                <button id="configButton" onclick="showGoogleApiConfig()" style="margin-left: 15px; padding: 5px 10px; border: none; border-radius: 5px; background: rgba(255,255,255,0.2); color: white; cursor: pointer;">🔧 Google API設定</button>
+            </div>
+        </div>
+
+        <!-- Google API設定モーダル -->
+        <div id="apiConfigModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000;">
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 15px; min-width: 400px; color: #333;">
+                <h3>🔍 Google Custom Search API設定</h3>
+                <p>実際のタカラジェンヌの写真を表示するためにGoogle APIを設定してください。</p>
+                
+                <div style="margin: 15px 0;">
+                    <label>Google API Key:</label><br>
+                    <input type="text" id="googleApiKeyInput" placeholder="AIzaSyC9..." style="width: 100%; padding: 8px; margin: 5px 0; border: 2px solid #ddd; border-radius: 5px;">
+                </div>
+                
+                <div style="margin: 15px 0;">
+                    <label>Search Engine ID:</label><br>
+                    <input type="text" id="searchEngineIdInput" placeholder="017576662512468014234..." style="width: 100%; padding: 8px; margin: 5px 0; border: 2px solid #ddd; border-radius: 5px;">
+                </div>
+                
+                <div style="margin: 15px 0; font-size: 12px; color: #666;">
+                    <p>📋 セットアップ手順:</p>
+                    <p>1. <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a> でプロジェクト作成</p>
+                    <p>2. Custom Search API を有効化してAPIキーを取得</p>
+                    <p>3. <a href="https://programmablesearchengine.google.com/" target="_blank">Programmable Search Engine</a> を作成</p>
+                </div>
+                
+                <div style="text-align: center; margin-top: 20px;">
+                    <button onclick="saveGoogleApiConfig()" style="padding: 10px 20px; margin: 5px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">💾 保存</button>
+                    <button onclick="hideGoogleApiConfig()" style="padding: 10px 20px; margin: 5px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer;">❌ キャンセル</button>
+                    <button onclick="testGoogleApi()" style="padding: 10px 20px; margin: 5px; background: #2196F3; color: white; border: none; border-radius: 5px; cursor: pointer;">🧪 テスト</button>
+                </div>
+                
+                <div id="apiTestResult" style="margin-top: 15px; padding: 10px; border-radius: 5px; display: none;"></div>
             </div>
         </div>
 
@@ -130,6 +164,7 @@
 
     <!-- JavaScriptファイルを読み込み -->
     <script src="js/config.js"></script>
+    <script src="js/real-google-search.js"></script>
     <script src="js/google-search-setup.js"></script>
     <script src="js/data.js"></script>
     <script src="js/app.js"></script>
